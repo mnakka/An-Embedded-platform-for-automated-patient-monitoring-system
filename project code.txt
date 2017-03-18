@@ -1,0 +1,119 @@
+#include <16F876.h>
+#include <stdlib.h>
+#include <string.h>
+#include <lcd.c>
+#include <GSM.c>
+#use delay(oscillator=20M)
+#use        rs232  (baud = 9600, xmit=PIN_B0,rcv=PIN_B1,stream=GSM)
+char help[] = {"help"};
+char  num[12];
+char  ch = 0;
+int count1 = 0;
+int16 count = 0;
+int16 hbeat = 70;
+int16 prev = 70;
+int16 prev1 = 70;
+int16 result = 0;
+unsigned long temp_read = 0;
+void heart_rate()
+{
+if ((hbeat < 60) || (hbeat > 90))
+{
+         if (hbeat < 60)
+         {
+          fprintf(GSM,"*** ALERT *** Low Heart rate \r\n ");
+         }
+         if (hbeat > 90)
+         {
+           fprintf(GSM,"*** ALERT *** High Heart rate \r\n ");
+         }
+         fprintf(GSM," Heart Rate: %Lu \r\n",hbeat);           
+         delay_ms(2000);
+         lcd_putc('\f');
+         printf(lcd_putc,"Sending Msg");
+         lcd_gotoxy(1,2);    
+         printf(lcd_putc,"Num:%s",num);
+         delay_ms(20000);  
+      }
+}
+void main()
+{
+   int i = 0;
+   int j = 0;
+   lcd_init(); 
+   lcd_putc('\f');         // Clear LCD
+   lcd_gotoxy(1,1);        // row-1, column-1
+   printf(lcd_putc,"Human body temp");
+   lcd_gotoxy(1,2);        // row-1, column-2
+   printf(lcd_putc,"heart rate monitorng");
+   delay_ms(1500);
+   init_phone();
+   lcd_putc('\f');         // Clear LCD
+   lcd_gotoxy(1,1);        // row-1, column-1
+   printf(lcd_putc," Please Insert");
+   lcd_gotoxy(1,2);        // row-2, column-1
+   printf(lcd_putc,"  Your Finger");
+   while(1)
+   {       
+      count = 0;      
+      delay_ms(250);      
+      temp_read = read_temperature();
+      delay_ms(250);          
+      output_high(PIN_C4);
+      output_high(PIN_C3);      
+      delay_ms(50);      
+      output_low(PIN_C4);      
+      output_low(PIN_C3);             
+      //Find Heart rate
+      if((hbeat > 0) && (hbeat < 250))
+      {
+         lcd_putc('\f');
+         printf(lcd_putc,"Heart Rate = %Lu",hbeat);    
+         lcd_gotoxy(1,2);                  
+         if(hbeat < 60)
+         {
+            printf(lcd_putc,"  Low HR");        
+         }
+         else if(hbeat > 90)
+         {
+            printf(lcd_putc,"  High HR");           
+         }
+         else
+         {
+            printf(lcd_putc,"    NORMAL HR");               
+         }
+      }
+      if(temp_read <= TEMP_LIMIT)
+     {
+        output_low(PIN_C3);
+        lcd_gotoxy(1,1);
+        lcd_putc('\f');         //Clear LCD 
+        printf(lcd_putc,"Live Temperature:");
+        lcd_gotoxy(1,2);
+        printf(lcd_putc,"      %Lu%cC",temp_read,223);     
+        delay_ms(1000);
+     }
+     if(temp_read > TEMP_LIMIT)
+     {
+         output_high(PIN_C3);
+         lcd_putc('\f');         //Clear LCD 
+         lcd_gotoxy(1,1);
+         printf(lcd_putc,"High Temp. Alert");
+         lcd_gotoxy(1,2);
+         delay_ms(2000);
+     }
+      } 
+ }
+    fgets(data,GSM); //capture sms data into data variable     
+      lcd_putc('\f');  
+      lcd_gotoxy(1,1);        // row-1, column-1
+      printf(lcd_putc,"Ph:%s",num);      
+     delay_ms(5000);          
+     else if(strstr(data,help))
+     {      
+       fprintf(GSM,"Send \"get\" to get heart beat and temp \r\n");
+       fprintf(GSM,"Send \"about\" to know about me\r\n");             
+         delay_ms(2000);
+     }      
+   }
+}
